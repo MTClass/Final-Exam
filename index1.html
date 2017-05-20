@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<meta charset='utf-8'>
+<title>California Earthquakes</title>
+<style>
+body {
+  margin: 0;
+  background-color: blue;
+}
+
+.info {
+  position: absolute;
+  top: 50px;
+  left: 50px;
+}
+  
+path.quake {
+  fill: red;
+  
+</style>
+<div class="info"></div>
+<svg width="960" height="500" stroke="#000" stroke-linejoin="round" stroke-linecap="round">
+ 
+</svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://unpkg.com/topojson-client@3"></script>
+<script src="https://d3js.org/topojson.v2.min.js"></script>
+<script>
+
+// This demo modified slightly from https://bl.ocks.org/mbostock/4108203
+
+var svg = d3.select("svg");
+
+var defs = svg.select("defs");
+
+  ////California state plane: Conic Conformal
+  var projection = d3.geoConicConformal()
+  .parallels([36, 30 + 15 / 60])
+  .rotate([120, -30 - 20 / 60]);
+
+  
+//Add the earthquakes
+  var data;  // declare a global variable
+
+// NEW: Add g element for earthquakes
+
+var layer2 = svg.append("g");
+
+// Add a <div> element to label the mouse position
+var info = d3.select("body").append("div")
+    .attr("class", "info");
+  
+// NEW: Read the earthquake data and send it to function "plotQuakes"
+var usgs = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
+
+d3.json(usgs, plotQuakes);
+
+function plotStates(error, json) {
+   // Convert topojson to an Array of GeoJSON features
+  // This defines "data", a global variable that can be manipulated in the developer console
+  data = json.objects.us.geometries.map(function(d) { return topojson.feature(json, d); })
+
+}
+// NEW: Function that plots the earthquake data
+ function plotQuakes(error, json) {
+ if (error) return console.log(error);
+
+  // Global variable, data, will be visible in the console
+ data = json;
+
+  // Extract an array of feature objects, one for each earthquake
+ var features = json.features;
+
+  // Plot the earthquakes
+  layer2.selectAll("path.quake")
+      .data(features)
+    .enter().append("path")
+      .attr("class", "quake")
+      .attr("d", path)
+  .attr("fill", "#fff")
+      .attr("stroke", "#aaa")
+      .attr("stroke-width", 0.5)
+  .on('mouseover', function(d, i) {
+        console.log('mouseover:', i, d);
+        d3.select(this).attr('fill', 'crimson');
+        d3.select(".info").html(d.properties.mag + " " + d.properties.place)
+                       
+      })
+      .on('mouseout', function(d) {
+        d3.select(this).attr('fill', '#fff');
+        d3.select(".info").html("")
+      });
+         
+}
+var path = d3.geoPath()
+    .projection(projection);
+  
+ 
+// Load the topojson data
+  var counties = "https://raw.githubusercontent.com/umbcvis/classes/master/class-14/counties.json";
+ 
+d3.queue()
+
+    .defer(d3.json,counties)
+    .await(ready);
+
+// Wait for the data to arrive, then begin processing
+function ready(error, us,) {
+  if (error) throw error;
+
+    // Convert the topojson to an array of GeoJSON counties
+  var counties = topojson.feature(us, us.objects.counties);
+
+  // Get California counties as array of GeoJSON features
+  var california = counties.features.filter(function(d) { return d.properties.STATEFP === '06' })
+
+  
+  projection.fitExtent([[10,10],[960 - 100, 500 - 100]], { type: "FeatureCollection", features: california });
+
+  // Plot the boundary of the US
+  svg.append("path")
+      .attr("id", "nation")
+      .attr("d", path(topojson.merge(us, us.objects.counties.geometries)))
+      .attr("stroke-width", 2)
+
+  // Drop-shadow styling (this is blurred shadow)
+  svg.append("use")
+      .attr("xlink:href", "#nation")
+      .attr("fill-opacity", 0.2)
+      .attr("filter", "url(#blur)");
+
+  // Drop-shadow styling (this is green overlay)
+  svg.append("use")
+      .attr("xlink:href", "#nation")
+      .attr("fill", "#43d600");
+
+  // Plot the state boundaries
+  svg.append("path")
+      .attr("stroke-width", 1)
+      .attr("fill", "none")
+      .attr("d", path(topojson.mesh(us, us.objects.counties, function(a, b) { return a.properties.STATEFP !== b.properties.STATEFP; })));
+  
+}
+
+</script>

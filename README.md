@@ -1,7 +1,7 @@
 # Final-Exam
 Visualization Class
 
-Here is the final product answering the examp questions
+Here is the final product answering the exam questions
 https://bl.ocks.org/MTClass/db78f9992ad8f799611b6a4a2c6e87d5
 
 Questions-

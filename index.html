@@ -4,7 +4,7 @@
 <style>
 body {
   margin: 0;
-  background-color: #eee;
+  background-color: turquoise;
 }
 
 .info {
@@ -12,6 +12,17 @@ body {
   top: 50px;
   left: 50px;
 }
+  
+.tooltip {
+  position: absolute;
+  visibility: visible;
+  background-color: #aaa;
+  padding: 5px;
+}
+
+path.quake {
+  fill: red;
+  
 </style>
 <div class="info"></div>
 <svg width="960" height="500" stroke="#000" stroke-linejoin="round" stroke-linecap="round">
@@ -31,7 +42,7 @@ var svg = d3.select("svg");
 
 var defs = svg.select("defs");
 
-////California state plane: Conic Conformal
+////Change the projection fron New York to California state plane: Conic Conformal
   var projection = d3.geoConicConformal()
   .parallels([36, 30 + 15 / 60])
   .rotate([120, -30 - 20 / 60]);
@@ -42,7 +53,13 @@ var path = d3.geoPath()
 // Load the topojson and the population data
   // Load the topojson and the population data
   var counties = "https://raw.githubusercontent.com/umbcvis/classes/master/class-14/counties.json";
-  var population = "https://raw.githubusercontent.com/umbcvis/classes/master/class-14/population.json";
+   var population = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
+
+  // 2. NEW: Add an HTML <div> element that will function as the tooltip
+var tooltip = d3.select('body').append('div')
+    .attr('class', 'tooltip')
+
+// Load the topojson and the population data
 d3.queue()
     .defer(d3.json,counties)
     .defer(d3.json, population)
@@ -52,24 +69,18 @@ d3.queue()
 function ready(error, us, population) {
   if (error) throw error;
 
-  // Make the population data easy to query by FIPS code
-  var data = d3.map();
-  population.forEach(function(d, i) {
-    if (i === 0) return;  // skip the first line in the population data
-    data.set(d[1] + d[2], +d[0]);
-  });
-
   // Convert the topojson to an array of GeoJSON counties
   var counties = topojson.feature(us, us.objects.counties);
 
   // Get California counties as array of GeoJSON features
   var california = counties.features.filter(function(d) { return d.properties.STATEFP === '06' })
 
-  // Inspect the data in the developer console
+   // Inspect the data in the developer console
   console.log('here is the population data:', population[0], population[1]);
   console.log('here is one of the counties:', california[0]);
 
   projection.fitExtent([[10,10],[960 - 20, 500 - 20]], { type: "FeatureCollection", features: california });
+   
 
   // Plot the boundary of the US
   svg.append("path")
@@ -83,10 +94,10 @@ function ready(error, us, population) {
       .attr("fill-opacity", 0.2)
       .attr("filter", "url(#blur)");
 
-  // Drop-shadow styling (this is white overlay)
+  // Drop-shadow styling (this is green overlay)
   svg.append("use")
       .attr("xlink:href", "#nation")
-      .attr("fill", "#fff");
+      .attr("fill", "#43d600");
 
   // Plot the state boundaries
   svg.append("path")
@@ -96,22 +107,21 @@ function ready(error, us, population) {
 
   // Plot the individual counties
   svg.selectAll('path.county')
-      .data( california )
+      .data( population.features )
     .enter().append("path")
       .attr("d", path)
       .attr("class", "county")
-      .attr("fill", "#fff")
+      .attr("fill", "#600000")
       .attr("stroke", "#aaa")
       .attr("stroke-width", 0.5)
       .on('mouseover', function(d, i) {
         console.log('mouseover:', i, d);
-        d3.select(this).attr('fill', 'crimson');
-        d3.select(".info").html(d.properties.NAME + " County"
-                              + "<br>Population: "
-                             + d3.format(",d")(data.get(d.properties.GEOID)))
+        d3.select(this).attr('fill', 'yellow');
+          d3.select(".info").html(d.properties.mag + " mag" + " " + d.properties.place)
+                       
       })
       .on('mouseout', function(d) {
-        d3.select(this).attr('fill', '#fff');
+        d3.select(this).attr('fill', '#c10000');
         d3.select(".info").html("")
       });
 }
